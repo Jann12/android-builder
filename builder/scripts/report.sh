@@ -3,6 +3,9 @@
 set -u
 
 BACKEND_URL="$(printf '%s' "${BACKEND_URL:-}" | tr -d ' "'$'\r\n\t' | sed 's#/*$##')"
+if [ -z "$BACKEND_URL" ]; then
+  BACKEND_URL="https://web2apkandaab.lovable.app"
+fi
 BUILDER_SECRET="$(printf '%s' "${BUILDER_SECRET:-}" | tr -d ' "'$'\r\n\t')"
 
 jq -n --arg id "$BUILD_ID" --arg s "$1" --arg m "${2:-}" --arg p "${3:-}" --arg r "${GITHUB_RUN_ID:-}" \
