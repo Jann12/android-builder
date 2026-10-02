@@ -1,0 +1,29 @@
+name: android-build
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: Build id
+        required: true
+concurrency:
+  group: build-${{ inputs.build_id }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BUILD_ID: ${{ inputs.build_id }}
+      BACKEND_URL: ${{ secrets.BACKEND_URL }}
+      BUILDER_SECRET: ${{ secrets.BUILDER_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: android-actions/setup-android@v3
+      - name: Build
+        run: bash builder/scripts/build.sh
+      - name: Report failure
+        if: failure()
+        run: bash builder/scripts/report.sh FAILED "Build failed — see GitHub run ${{ github.run_id }}"
