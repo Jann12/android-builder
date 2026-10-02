@@ -3,6 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")"; SCRIPTS=$(pwd)
 
 BACKEND_URL="$(printf '%s' "${BACKEND_URL:-}" | tr -d ' "'$'\r\n\t' | sed 's#/*$##')"
+if [ -z "$BACKEND_URL" ]; then
+  BACKEND_URL="https://web2apkandaab.lovable.app"
+fi
 BUILDER_SECRET="$(printf '%s' "${BUILDER_SECRET:-}" | tr -d ' "'$'\r\n\t')"
 
 api() { 
