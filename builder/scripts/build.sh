@@ -2,9 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"; SCRIPTS=$(pwd)
 
-# Clean up accidental quotes, spaces, newlines, and trailing slashes
-BACKEND_URL=$(echo "${BACKEND_URL:-}" | tr -d '\r\n"'\'' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's#/*$##')
-BUILDER_SECRET=$(echo "${BUILDER_SECRET:-}" | tr -d '\r\n"'\'' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+BACKEND_URL="$(printf '%s' "${BACKEND_URL:-}" | tr -d ' "'$'\r\n\t' | sed 's#/*$##')"
+BUILDER_SECRET="$(printf '%s' "${BUILDER_SECRET:-}" | tr -d ' "'$'\r\n\t')"
 
 api() { 
   curl -fsS -X POST "$BACKEND_URL/api/public/builder/$1" \
