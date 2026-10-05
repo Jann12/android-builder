@@ -1,23 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"; SCRIPTS=$(pwd)
-
-BACKEND_URL="$(printf '%s' "${BACKEND_URL:-}" | tr -d ' "'$'\r\n\t' | sed 's#/*$##')"
-if [ -z "$BACKEND_URL" ]; then
-  BACKEND_URL="https://web2apkandaab.lovable.app"
-fi
-BUILDER_SECRET="$(printf '%s' "${BUILDER_SECRET:-}" | tr -d ' "'$'\r\n\t')"
-
-api() { 
-  curl -fsS -X POST "$BACKEND_URL/api/public/builder/$1" \
-    -H "content-type: application/json" \
-    -H "x-builder-secret: $BUILDER_SECRET" \
-    -d "$2"
-}
-
-report() { 
-  bash "$SCRIPTS/report.sh" "$@"
-}
+api() { curl -fsS -X POST "$BACKEND_URL/api/public/builder/$1" -H "content-type: application/json" -H "x-builder-secret: $BUILDER_SECRET" -d "$2"; }
+report() { bash "$SCRIPTS/report.sh" "$@"; }
 
 CFG=$(api config "{\"build_id\":\"$BUILD_ID\"}")
 NAME=$(jq -r .apps.name <<<"$CFG"); URL=$(jq -r .apps.website_url <<<"$CFG")
@@ -36,6 +21,17 @@ npx cap add android >/dev/null
 report BUILDING "" 40
 
 cd android
+ICON_URL=$(jq -r '.icon_url // empty' <<<"$CFG")
+if [[ -n "$ICON_URL" ]] && curl -fsSL "$ICON_URL" -o /tmp/icon_src; then
+  RES=app/src/main/res
+  rm -rf "$RES/mipmap-anydpi-v26"
+  for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+    dir="$RES/mipmap-${d%%:*}"; sz=${d##*:}; mkdir -p "$dir"
+    convert /tmp/icon_src -resize ${sz}x${sz}^ -gravity center -extent ${sz}x${sz} "$dir/ic_launcher.png"
+    cp "$dir/ic_launcher.png" "$dir/ic_launcher_round.png"
+    cp "$dir/ic_launcher.png" "$dir/ic_launcher_foreground.png"
+  done
+fi
 sed -i "s/versionCode .*/versionCode $VCODE/; s/versionName .*/versionName \"$VNAME\"/" app/build.gradle
 chmod +x gradlew
 TASKS=""
