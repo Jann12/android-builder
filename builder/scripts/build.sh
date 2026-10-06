@@ -22,15 +22,21 @@ report BUILDING "" 40
 
 cd android
 ICON_URL=$(jq -r '.icon_url // empty' <<<"$CFG")
-if [[ -n "$ICON_URL" ]] && curl -fsSL "$ICON_URL" -o /tmp/icon_src; then
+if [[ -z "$ICON_URL" ]]; then
+  echo "No custom icon uploaded - using default icon"
+elif curl -fsSL "$ICON_URL" -o /tmp/icon_src; then
+  command -v convert >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick >/dev/null; }
   RES=app/src/main/res
-  rm -rf "$RES/mipmap-anydpi-v26"
+  rm -rf "$RES"/mipmap-anydpi-v26 "$RES"/mipmap-*/ic_launcher*.webp "$RES"/mipmap-*/ic_launcher*.png
   for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
     dir="$RES/mipmap-${d%%:*}"; sz=${d##*:}; mkdir -p "$dir"
-    convert /tmp/icon_src -resize ${sz}x${sz}^ -gravity center -extent ${sz}x${sz} "$dir/ic_launcher.png"
+    convert /tmp/icon_src -background none -resize ${sz}x${sz} -gravity center -extent ${sz}x${sz} "PNG32:$dir/ic_launcher.png"
     cp "$dir/ic_launcher.png" "$dir/ic_launcher_round.png"
     cp "$dir/ic_launcher.png" "$dir/ic_launcher_foreground.png"
   done
+  echo "Custom icon installed"
+else
+  echo "WARNING: could not download custom icon - using default icon"
 fi
 sed -i "s/versionCode .*/versionCode $VCODE/; s/versionName .*/versionName \"$VNAME\"/" app/build.gradle
 chmod +x gradlew
